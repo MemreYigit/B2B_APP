@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WebApplication1.Entity;
 
 namespace WebApplication1.Data
 {
@@ -8,15 +9,15 @@ namespace WebApplication1.Data
         {
         }
 
-        // Add your DbSets here
-        // public DbSet<Customer> Customers { get; set; }
-        // public DbSet<Product> Products { get; set; }
-        // public DbSet<Order> Orders { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            // Configure your entities here
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
         }
     }
 }
