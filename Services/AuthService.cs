@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Entity;
 using WebApplication1.Models;
@@ -23,37 +24,54 @@ namespace WebApplication1.Services
 
         public async Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request)
         {
-            var existingUser = _dbContext.Users.FirstOrDefault(u => u.Email == request.Email);
+            // 1. ASENKRON SORGULAMA: FirstOrDefault yerine FirstOrDefaultAsync kullanıldı
+            var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (existingUser != null)
                 return (false, "Bu email zaten kayıtlı", 0);
 
+            // B2B Güvenliği için şifre uzunluğu kontrolü (Basit bir önlem)
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+                return (false, "Şifre en az 8 karakter olmalıdır.", 0);
+
             var user = new User
             {
-                Email = request.Email,
+                Email = request.Email.Trim().ToLower(), // E-postaları standardize edin
                 FullName = request.FullName,
                 CompanyName = request.CompanyName,
                 PhoneNumber = request.PhoneNumber,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Status = UserStatus.Pending, // Başlangıçta Pending
+                Status = UserStatus.Pending, 
                 Role = UserRole.User
             };
 
             _dbContext.Users.Add(user);
             await _dbContext.SaveChangesAsync();
 
-            return (true, "Başvurunuz admin onayı bekliyor", user.Id);
+            return (true, "Başvurunuz başarıyla alındı, admin onayı bekliyor", user.Id);
         }
 
         public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request)
         {
-            var user = _dbContext.Users.FirstOrDefault(u => u.Email == request.Email);
+            // 1. ASENKRON SORGULAMA
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            
+            // 2. GÜVENLİK (Timing Attack Önlemi): 
+            // Kullanıcı yoksa bile dummy (sahte) bir şifre hash'i doğrulayarak zamanlama analizi yapılmasını engelliyoruz.
             if (user == null)
+            {
+                // Rastgele bir BCrypt doğrulaması çalıştırarak süreyi eşitliyoruz
+                BCrypt.Net.BCrypt.Verify("dummy_password", "$2a$11$K3u7DkGj7mPskp.BvN1WCO3G6v3vR6mB5oB1tYy5aK4y5aK4y5aK4");
                 return (false, "Email veya şifre yanlış", null);
+            }
 
-            // Sadece onaylı kullanıcılar login olabilir
-            if (user.Status != UserStatus.Approved)
+            // 3. İŞ MANTIĞI: Durum kontrolleri netleştirildi
+            if (user.Status == UserStatus.Pending)
                 return (false, "Hesabınız henüz admin tarafından onaylanmadı", null);
 
+            if (user.Status == UserStatus.Rejected)
+                return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null);
+
+            // Şifre doğrulaması
             if (!VerifyPassword(request.Password, user.PasswordHash))
                 return (false, "Email veya şifre yanlış", null);
 
