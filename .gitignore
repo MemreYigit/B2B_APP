@@ -1,0 +1,52 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+packages/
+
+# Publish output
+publish/
+
+# Test results
+TestResults/
+
+# Environment files
+.env
+
+# Local development settings
+appsettings.Development.json
+
+# Secrets
+secrets.json
+
+# Coverage
+coverage/
+*.coverage
+
+# Generated files
+Generated/
+
+# Node (if you later add a React frontend)
+node_modules/
+dist/
