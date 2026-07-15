@@ -7,8 +7,8 @@ namespace WebApplication1.Services
     public interface IAuthService
     {
         Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request);
-        Task<(bool Success, string Message, UserDto User)> LoginAsync(LoginRequest request);
-        Task<User> GetUserByIdAsync(int id);
+        Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request);
+        Task<User?> GetUserByIdAsync(int id);
         bool VerifyPassword(string password, string hash);
     }
 
@@ -44,7 +44,7 @@ namespace WebApplication1.Services
             return (true, "Başvurunuz admin onayı bekliyor", user.Id);
         }
 
-        public async Task<(bool Success, string Message, UserDto User)> LoginAsync(LoginRequest request)
+        public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request)
         {
             var user = _dbContext.Users.FirstOrDefault(u => u.Email == request.Email);
             if (user == null)
@@ -70,7 +70,7 @@ namespace WebApplication1.Services
             return (true, "Başarıyla giriş yaptınız", userDto);
         }
 
-        public async Task<User> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             return await _dbContext.Users.FindAsync(id);
         }

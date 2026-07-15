@@ -8,18 +8,18 @@ namespace WebApplication1.Entity
 
         [Required]
         [EmailAddress]
-        public string Email { get; set; }
+        public required string Email { get; set; }
 
         [Required]
-        public string FullName { get; set; }
+        public required string FullName { get; set; }
 
         [Required]
-        public string PasswordHash { get; set; }
+        public required string PasswordHash { get; set; }
 
         [Required]
-        public string CompanyName { get; set; }
+        public required string CompanyName { get; set; }
 
-        public string PhoneNumber { get; set; }
+        public string? PhoneNumber { get; set; }
 
         public UserStatus Status { get; set; } = UserStatus.Pending; // Pending, Approved, Rejected
 
