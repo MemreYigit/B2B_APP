@@ -23,9 +23,11 @@ namespace WebApplication1.Services
         }
 
         public async Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request)
-        {
+        {   
+            var normalizedEmail = request.Email.Trim().ToLower();
+
             // 1. ASENKRON SORGULAMA: FirstOrDefault yerine FirstOrDefaultAsync kullanıldı
-            var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (existingUser != null)
                 return (false, "Bu email zaten kayıtlı", 0);
 
@@ -35,7 +37,7 @@ namespace WebApplication1.Services
 
             var user = new User
             {
-                Email = request.Email.Trim().ToLower(), // E-postaları standardize edin
+                Email = normalizedEmail, // E-postaları standardize edin
                 FullName = request.FullName,
                 CompanyName = request.CompanyName,
                 PhoneNumber = request.PhoneNumber,
@@ -52,9 +54,11 @@ namespace WebApplication1.Services
 
         public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request)
         {
+            var normalizedEmail = request.Email.Trim().ToLower();
+
             // 1. ASENKRON SORGULAMA
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-            
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+    
             // 2. GÜVENLİK (Timing Attack Önlemi): 
             // Kullanıcı yoksa bile dummy (sahte) bir şifre hash'i doğrulayarak zamanlama analizi yapılmasını engelliyoruz.
             if (user == null)
