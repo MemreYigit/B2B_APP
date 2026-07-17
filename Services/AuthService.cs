@@ -8,7 +8,7 @@ namespace WebApplication1.Services
     public interface IAuthService
     {
         Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request);
-        Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request);
+        Task<(bool Success, string Message, UserDto? User, string? Token)> LoginAsync(LoginRequest request);
         Task<User?> GetUserByIdAsync(int id);
         bool VerifyPassword(string password, string hash);
     }
@@ -16,10 +16,12 @@ namespace WebApplication1.Services
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _dbContext;
+        private readonly IJwtService _jwtService;
 
-        public AuthService(AppDbContext dbContext)
+        public AuthService(AppDbContext dbContext, IJwtService jwtService)
         {
             _dbContext = dbContext;
+            _jwtService = jwtService;
         }
 
         public async Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request)
@@ -52,7 +54,7 @@ namespace WebApplication1.Services
             return (true, "Başvurunuz başarıyla alındı, admin onayı bekliyor", user.Id);
         }
 
-        public async Task<(bool Success, string Message, UserDto? User)> LoginAsync(LoginRequest request)
+        public async Task<(bool Success, string Message, UserDto? User, string? Token)> LoginAsync(LoginRequest request)
         {
             var normalizedEmail = request.Email.Trim().ToLower();
 
@@ -65,19 +67,19 @@ namespace WebApplication1.Services
             {
                 // Rastgele bir BCrypt doğrulaması çalıştırarak süreyi eşitliyoruz
                 BCrypt.Net.BCrypt.Verify("dummy_password", "$2a$11$K3u7DkGj7mPskp.BvN1WCO3G6v3vR6mB5oB1tYy5aK4y5aK4y5aK4");
-                return (false, "Email veya şifre yanlış", null);
+                return (false, "Email veya şifre yanlış", null, null);
             }
 
             // 3. İŞ MANTIĞI: Durum kontrolleri netleştirildi
             if (user.Status == UserStatus.Pending)
-                return (false, "Hesabınız henüz admin tarafından onaylanmadı", null);
+                return (false, "Hesabınız henüz admin tarafından onaylanmadı", null, null);
 
             if (user.Status == UserStatus.Rejected)
-                return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null);
+                return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null, null);
 
             // Şifre doğrulaması
             if (!VerifyPassword(request.Password, user.PasswordHash))
-                return (false, "Email veya şifre yanlış", null);
+                return (false, "Email veya şifre yanlış", null, null);
 
             var userDto = new UserDto
             {
@@ -89,7 +91,9 @@ namespace WebApplication1.Services
                 Role = user.Role.ToString()
             };
 
-            return (true, "Başarıyla giriş yaptınız", userDto);
+            var token = _jwtService.GenerateToken(user);
+
+            return (true, "Başarıyla giriş yaptınız", userDto, token);
         }
 
         public async Task<User?> GetUserByIdAsync(int id)

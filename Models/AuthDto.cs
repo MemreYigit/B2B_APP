@@ -21,6 +21,7 @@ namespace WebApplication1.Models
         public required bool Success { get; set; }
         public required string Message { get; set; }
         public UserDto? User { get; set; }
+        public string? Token { get; set; }
     }
 
     public class RegisterResponse

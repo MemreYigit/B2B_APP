@@ -35,12 +35,12 @@ namespace WebApplication1.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var (success, message, user) = await _authService.LoginAsync(request);
+            var (success, message, user, token) = await _authService.LoginAsync(request);
 
             if (!success)
                 return Unauthorized(new { success, message });
 
-            return Ok(new { success, message, user });
+            return Ok(new { success, message, user, token });
         }
     }
 }
