@@ -7,6 +7,7 @@ namespace WebApplication1.Models
         public required string FullName { get; set; }
         public required string Password { get; set; }
         public required string CompanyName { get; set; }
+        public required string TaxNumber { get; set; }
         public string? PhoneNumber { get; set; }
     }
 

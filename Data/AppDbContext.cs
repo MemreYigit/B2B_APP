@@ -26,7 +26,8 @@ namespace WebApplication1.Data
                     .HasMaxLength(200);
 
                 entity.Property(c => c.TaxNumber)
-                    .HasMaxLength(20);
+                    .IsRequired()
+                    .HasMaxLength(50);
 
                 entity.Property(c => c.Address)
                     .HasMaxLength(500);
@@ -37,6 +38,10 @@ namespace WebApplication1.Data
                 entity.Property(c => c.Email)
                     .HasMaxLength(256);
 
+                // Vergi numarası eşsiz olmalıdır
+                entity.HasIndex(c => c.TaxNumber)
+                    .IsUnique();
+                    
                 // Soft delete global query filter
                 entity.HasQueryFilter(c => !c.IsDeleted);
             });

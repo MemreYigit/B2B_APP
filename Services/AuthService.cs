@@ -37,13 +37,14 @@ namespace WebApplication1.Services
 
             // Company'yi ara, yoksa oluştur
             var company = await _dbContext.Companies
-                .FirstOrDefaultAsync(c => c.Name == request.CompanyName && !c.IsDeleted);
+                .FirstOrDefaultAsync(c => c.TaxNumber == request.TaxNumber && !c.IsDeleted);
 
             if (company == null)
             {
                 company = new Company
-                {
+                {   
                     Name = request.CompanyName,
+                    TaxNumber = request.TaxNumber,
                     CreatedAt = DateTime.UtcNow
                 };
                 _dbContext.Companies.Add(company);
