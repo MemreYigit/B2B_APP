@@ -25,26 +25,39 @@ namespace WebApplication1.Services
         }
 
         public async Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request)
-        {   
+        {
             var normalizedEmail = request.Email.Trim().ToLower();
 
-            // 1. ASENKRON SORGULAMA: FirstOrDefault yerine FirstOrDefaultAsync kullanıldı
             var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (existingUser != null)
                 return (false, "Bu email zaten kayıtlı", 0);
 
-            // B2B Güvenliği için şifre uzunluğu kontrolü (Basit bir önlem)
             if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
                 return (false, "Şifre en az 8 karakter olmalıdır.", 0);
 
+            // Company'yi ara, yoksa oluştur
+            var company = await _dbContext.Companies
+                .FirstOrDefaultAsync(c => c.Name == request.CompanyName && !c.IsDeleted);
+
+            if (company == null)
+            {
+                company = new Company
+                {
+                    Name = request.CompanyName,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.Companies.Add(company);
+                await _dbContext.SaveChangesAsync();
+            }
+
             var user = new User
             {
-                Email = normalizedEmail, // E-postaları standardize edin
+                Email = normalizedEmail,
                 FullName = request.FullName,
-                CompanyName = request.CompanyName,
+                CompanyId = company.Id,
                 PhoneNumber = request.PhoneNumber,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Status = UserStatus.Pending, 
+                Status = UserStatus.Pending,
                 Role = UserRole.User
             };
 
@@ -58,26 +71,22 @@ namespace WebApplication1.Services
         {
             var normalizedEmail = request.Email.Trim().ToLower();
 
-            // 1. ASENKRON SORGULAMA
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
-    
-            // 2. GÜVENLİK (Timing Attack Önlemi): 
-            // Kullanıcı yoksa bile dummy (sahte) bir şifre hash'i doğrulayarak zamanlama analizi yapılmasını engelliyoruz.
+            var user = await _dbContext.Users
+                .Include(u => u.Company)
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
             if (user == null)
             {
-                // Rastgele bir BCrypt doğrulaması çalıştırarak süreyi eşitliyoruz
                 BCrypt.Net.BCrypt.Verify("dummy_password", "$2a$11$K3u7DkGj7mPskp.BvN1WCO3G6v3vR6mB5oB1tYy5aK4y5aK4y5aK4");
                 return (false, "Email veya şifre yanlış", null, null);
             }
 
-            // 3. İŞ MANTIĞI: Durum kontrolleri netleştirildi
             if (user.Status == UserStatus.Pending)
                 return (false, "Hesabınız henüz admin tarafından onaylanmadı", null, null);
 
             if (user.Status == UserStatus.Rejected)
                 return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null, null);
 
-            // Şifre doğrulaması
             if (!VerifyPassword(request.Password, user.PasswordHash))
                 return (false, "Email veya şifre yanlış", null, null);
 
@@ -86,7 +95,7 @@ namespace WebApplication1.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
-                CompanyName = user.CompanyName,
+                CompanyName = user.Company?.Name ?? "Atanmadı",
                 Status = user.Status.ToString(),
                 Role = user.Role.ToString()
             };

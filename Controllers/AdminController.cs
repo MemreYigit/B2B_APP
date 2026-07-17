@@ -27,7 +27,9 @@ namespace WebApplication1.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _dbContext.Users.Where(u => u.Status == UserStatus.Pending);
+            var query = _dbContext.Users
+                .Include(u => u.Company)
+                .Where(u => u.Status == UserStatus.Pending);
 
             var totalCount = await query.CountAsync();
             var pendingUsers = await query
@@ -39,12 +41,12 @@ namespace WebApplication1.Controllers
                     u.Id,
                     u.Email,
                     u.FullName,
-                    u.CompanyName,
+                    CompanyName = u.Company.Name,
                     u.PhoneNumber,
                     u.CreatedAt,
                     Status = u.Status.ToString()
                 })
-                .ToListAsync(); // Asenkron veritabanı okuması
+                .ToListAsync();
 
             return Ok(new { TotalCount = totalCount, Data = pendingUsers });
         }
@@ -106,7 +108,7 @@ namespace WebApplication1.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _dbContext.Users;
+            var query = _dbContext.Users.Include(u => u.Company);
             var totalCount = await query.CountAsync();
 
             var users = await query
@@ -118,7 +120,7 @@ namespace WebApplication1.Controllers
                     u.Id,
                     u.Email,
                     u.FullName,
-                    u.CompanyName,
+                    CompanyName = u.Company.Name,
                     Status = u.Status.ToString(),
                     Role = u.Role.ToString(),
                     u.CreatedAt,

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace WebApplication1.Entity
 {
     public class User
-    {   
+    {
         public int Id { get; set; }
 
         [Required]
@@ -17,21 +17,30 @@ namespace WebApplication1.Entity
         public required string PasswordHash { get; set; }
 
         [Required]
-        public required string CompanyName { get; set; }
+        public int CompanyId { get; set; }
 
         public string? PhoneNumber { get; set; }
 
-        public UserStatus Status { get; set; } = UserStatus.Pending; // Pending, Approved, Rejected
+        public UserStatus Status { get; set; } = UserStatus.Pending;
 
-        public UserRole Role { get; set; } = UserRole.User; // Admin, User
+        public UserRole Role { get; set; } = UserRole.User;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
 
         public DateTime? ApprovedAt { get; set; }
 
         public int? ApprovedByAdminId { get; set; }
 
         public string? ApprovalNotes { get; set; }
+
+        // Navigation properties
+        public Company Company { get; set; } = null!;
+
+        public User? ApprovedByAdmin { get; set; }
     }
 
     public enum UserStatus

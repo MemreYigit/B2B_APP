@@ -42,7 +42,7 @@ namespace WebApplication1.Services
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.FullName),
-                new Claim("CompanyName", user.CompanyName),
+                new Claim("CompanyId", user.CompanyId.ToString()),
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
