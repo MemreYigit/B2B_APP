@@ -37,10 +37,21 @@ namespace WebApplication1.Entity
 
         public string? ApprovalNotes { get; set; }
 
+        // E-posta doğrulaması: kayıt sonrası gönderilen linkteki token doğrulanınca
+        // IsEmailVerified true olur. Admin onayı (Status) ile karıştırılmamalı;
+        // örn. admin onay ekranı, doğrulanmamış e-postalı kullanıcıları filtreleyebilir.
+        public bool IsEmailVerified { get; set; } = false;
+
+        public string? EmailVerificationToken { get; set; }
+
+        public DateTime? EmailVerifiedAt { get; set; }
+
         // Navigation properties
         public Company Company { get; set; } = null!;
 
         public User? ApprovedByAdmin { get; set; }
+
+        public ICollection<UserDocument> Documents { get; set; } = new List<UserDocument>();
     }
 
     public enum UserStatus

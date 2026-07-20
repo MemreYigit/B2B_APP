@@ -20,7 +20,10 @@ namespace WebApplication1.Entity
 
         public bool IsDeleted { get; set; } = false;
 
-        // Navigation property
+        // Navigation properties
         public ICollection<User> Users { get; set; } = new List<User>();
+
+        // Her Company, ERP tarafındaki tek bir Cari kaydıyla eşleşir (1-1)
+        public Cari? Cari { get; set; }
     }
 }

@@ -69,6 +69,7 @@ builder.Services.AddAuthentication(options =>
 // Add services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IPriceResolver, PriceResolver>();
 
 // Add controllers
 builder.Services.AddControllers();

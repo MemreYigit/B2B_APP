@@ -27,7 +27,7 @@ namespace WebApplication1.Controllers
             if (!success)
                 return BadRequest(new { success, message });
 
-            return Ok(new { success, message, userId });
+            return StatusCode(201, new { success, message, userId });
         }
 
         [HttpPost("login")]

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WebApplication1.Data;
@@ -11,9 +12,11 @@ using WebApplication1.Data;
 namespace WebApplication1.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720202331_AddCariUrunSiparisEntities")]
+    partial class AddCariUrunSiparisEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -118,45 +121,6 @@ namespace WebApplication1.Migrations
                     b.HasIndex("CariId", "Tarih");
 
                     b.ToTable("CariHareketler");
-                });
-
-            modelBuilder.Entity("WebApplication1.Entity.CariUrunFiyat", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CariId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("GecerlilikBaslangic")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("GecerlilikBitis")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("OzelFiyat")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UrunId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UrunId");
-
-                    b.HasIndex("CariId", "UrunId");
-
-                    b.ToTable("CariUrunFiyatlari");
                 });
 
             modelBuilder.Entity("WebApplication1.Entity.Company", b =>
@@ -365,6 +329,10 @@ namespace WebApplication1.Migrations
                     b.Property<string>("Birim")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("CariyeOzelFiyat")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -583,25 +551,6 @@ namespace WebApplication1.Migrations
                     b.Navigation("Urun");
                 });
 
-            modelBuilder.Entity("WebApplication1.Entity.CariUrunFiyat", b =>
-                {
-                    b.HasOne("WebApplication1.Entity.Cari", "Cari")
-                        .WithMany("CariUrunFiyatlari")
-                        .HasForeignKey("CariId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WebApplication1.Entity.Urun", "Urun")
-                        .WithMany("CariUrunFiyatlari")
-                        .HasForeignKey("UrunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Cari");
-
-                    b.Navigation("Urun");
-                });
-
             modelBuilder.Entity("WebApplication1.Entity.Fatura", b =>
                 {
                     b.HasOne("WebApplication1.Entity.Siparis", "Siparis")
@@ -695,8 +644,6 @@ namespace WebApplication1.Migrations
                 {
                     b.Navigation("CariHareketler");
 
-                    b.Navigation("CariUrunFiyatlari");
-
                     b.Navigation("Siparisler");
                 });
 
@@ -717,8 +664,6 @@ namespace WebApplication1.Migrations
             modelBuilder.Entity("WebApplication1.Entity.Urun", b =>
                 {
                     b.Navigation("CariHareketler");
-
-                    b.Navigation("CariUrunFiyatlari");
 
                     b.Navigation("SiparisKalemleri");
                 });

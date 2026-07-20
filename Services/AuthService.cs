@@ -82,14 +82,14 @@ namespace WebApplication1.Services
                 return (false, "Email veya şifre yanlış", null, null);
             }
 
+            if (!VerifyPassword(request.Password, user.PasswordHash))
+                return (false, "Email veya şifre yanlış", null, null);
+
             if (user.Status == UserStatus.Pending)
                 return (false, "Hesabınız henüz admin tarafından onaylanmadı", null, null);
 
             if (user.Status == UserStatus.Rejected)
                 return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null, null);
-
-            if (!VerifyPassword(request.Password, user.PasswordHash))
-                return (false, "Email veya şifre yanlış", null, null);
 
             var userDto = new UserDto
             {
