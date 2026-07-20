@@ -12,8 +12,8 @@ using WebApplication1.Data;
 namespace WebApplication1.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260717115325_companytaxnumber")]
-    partial class companytaxnumber
+    [Migration("20260720130117_CompanyTaxNumber")]
+    partial class CompanyTaxNumber
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
