@@ -5,19 +5,22 @@ using System.Security.Claims;
 using WebApplication1.Data;
 using WebApplication1.Entity;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // 1. GÜVENLİK: Sadece Admin rolündekiler erişebilir
+    [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _dbContext;
+        private readonly IJwtService _jwtService;
 
-        public AdminController(AppDbContext dbContext)
+        public AdminController(AppDbContext dbContext, IJwtService jwtService)
         {
             _dbContext = dbContext;
+            _jwtService = jwtService;
         }
 
         // 2. PERFORMANS: Sayfalama (Pagination) eklendi
@@ -89,7 +92,6 @@ namespace WebApplication1.Controllers
             if (user == null)
                 return NotFound(new { message = "Kullanıcı bulunamadı" });
 
-            // 3. İŞ MANTIĞI: Durum kontrolü
             if (user.Status != UserStatus.Pending)
                 return BadRequest(new { message = "Sadece bekleme durumundaki kullanıcılar reddedilebilir." });
 
@@ -98,6 +100,9 @@ namespace WebApplication1.Controllers
 
             _dbContext.Users.Update(user);
             await _dbContext.SaveChangesAsync();
+
+            // Revoke all active sessions for this user
+            await _jwtService.RevokeAllForUserAsync(userId);
 
             return Ok(new { success = true, message = "Kullanıcı reddedildi." });
         }

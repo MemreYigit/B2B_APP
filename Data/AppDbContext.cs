@@ -11,6 +11,7 @@ namespace WebApplication1.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Company> Companies { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,6 +88,28 @@ namespace WebApplication1.Data
 
                 // Soft delete global query filter
                 entity.HasQueryFilter(u => !u.IsDeleted);
+            });
+
+            // UserSession configuration
+            modelBuilder.Entity<UserSession>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.Jti)
+                    .IsRequired()
+                    .HasMaxLength(64);
+
+                entity.HasIndex(s => s.Jti).IsUnique();
+
+                entity.HasIndex(s => new { s.UserId, s.IsRevoked });
+
+                entity.HasOne(s => s.User)
+                    .WithMany()
+                    .HasForeignKey(s => s.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Apply same soft delete filter as User entity
+                entity.HasQueryFilter(s => !s.User.IsDeleted);
             });
         }
     }

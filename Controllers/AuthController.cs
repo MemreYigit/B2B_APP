@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebApplication1.Models;
 using WebApplication1.Services;
 
@@ -30,6 +31,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("LoginPolicy")] // Apply rate limiting to the login endpoint
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)

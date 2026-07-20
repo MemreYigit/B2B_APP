@@ -101,7 +101,7 @@ namespace WebApplication1.Services
                 Role = user.Role.ToString()
             };
 
-            var token = _jwtService.GenerateToken(user);
+            var token = await _jwtService.GenerateTokenAsync(user);
 
             return (true, "Başarıyla giriş yaptınız", userDto, token);
         }
