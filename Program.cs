@@ -69,6 +69,8 @@ builder.Services.AddAuthentication(options =>
 // Add services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IUrunService, UrunService>();
+builder.Services.AddScoped<ISepetService, SepetService>();
 builder.Services.AddHostedService<SessionCleanupService>();
 
 // Add controllers
