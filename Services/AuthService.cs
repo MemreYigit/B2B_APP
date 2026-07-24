@@ -10,6 +10,7 @@ namespace EDG_B2B.Services
     {
         Task<(bool Success, string Message, Guid UserId)> RegisterAsync(RegisterRequest request);
         Task<(bool Success, string Message, KullaniciDto? User, string? Token)> LoginAsync(LoginRequest request);
+        Task LogoutAsync(string jti);
         Task<Kullanici?> GetUserByIdAsync(Guid id);
         bool VerifyPassword(string password, string hash);
     }
@@ -111,6 +112,11 @@ namespace EDG_B2B.Services
             var token = await _jwtService.GenerateTokenAsync(kullanici);
 
             return (true, "Başarıyla giriş yaptınız", kullaniciDto, token);
+        }
+
+        public async Task LogoutAsync(string jti)
+        {
+            await _jwtService.RevokeAsync(jti);
         }
 
         public async Task<Kullanici?> GetUserByIdAsync(Guid id)

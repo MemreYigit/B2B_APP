@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.IdentityModel.Tokens.Jwt;
 using EDG_B2B.Models;
 using EDG_B2B.Services;
 
@@ -43,6 +45,19 @@ namespace EDG_B2B.Controllers
                 return Unauthorized(new { success, message });
 
             return Ok(new { success, message, user, token });
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            if (string.IsNullOrEmpty(jti))
+                return Unauthorized(new { success = false, message = "Oturum kimliği doğrulanamadı." });
+
+            await _authService.LogoutAsync(jti);
+
+            return Ok(new { success = true, message = "Başarıyla çıkış yaptınız." });
         }
     }
 }
