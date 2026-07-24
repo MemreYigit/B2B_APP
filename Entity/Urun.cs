@@ -1,32 +1,26 @@
-namespace WebApplication1.Entity
+namespace EDG_B2B.Entity
 {
     public class Urun
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
-        public required string UrunKodu { get; set; }
+        public required string Ad { get; set; }
 
-        public required string UrunAdi { get; set; }
+        public required string StokKodu { get; set; }
 
-        public string? Aciklama { get; set; }
-
-        public string? Birim { get; set; }
+        public decimal StandartFiyat { get; set; }
 
         public int StokMiktari { get; set; }
 
-        public decimal ListeFiyati { get; set; }
+        public decimal KdvOrani { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime? UpdatedAt { get; set; }
-
-        public bool IsDeleted { get; set; } = false;
-
         // Navigation properties
-        public ICollection<CariHareket> CariHareketler { get; set; } = new List<CariHareket>();
+        public ICollection<BayiUrunFiyat> BayiUrunFiyatlari { get; set; } = new List<BayiUrunFiyat>();
 
-        public ICollection<SiparisKalemi> SiparisKalemleri { get; set; } = new List<SiparisKalemi>();
+        public ICollection<SepetUrun> SepetUrunleri { get; set; } = new List<SepetUrun>();
 
-        public ICollection<CariUrunFiyat> CariUrunFiyatlari { get; set; } = new List<CariUrunFiyat>();
+        public ICollection<SiparisUrun> SiparisUrunleri { get; set; } = new List<SiparisUrun>();
     }
 }

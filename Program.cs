@@ -5,8 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using WebApplication1.Data;
-using WebApplication1.Services;
+using EDG_B2B.Data;
+using EDG_B2B.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +54,7 @@ builder.Services.AddAuthentication(options =>
             }
 
             var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-            var session = await dbContext.UserSessions
+            var session = await dbContext.KullaniciOturumlari
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Jti == jti);
 
@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(options =>
 // Add services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IPriceResolver, PriceResolver>();
+builder.Services.AddHostedService<SessionCleanupService>();
 
 // Add controllers
 builder.Services.AddControllers();

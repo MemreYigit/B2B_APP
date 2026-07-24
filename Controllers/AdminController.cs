@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using WebApplication1.Data;
-using WebApplication1.Entity;
-using WebApplication1.Models;
-using WebApplication1.Services;
+using EDG_B2B.Data;
+using EDG_B2B.Entity.Enums;
+using EDG_B2B.Models;
+using EDG_B2B.Services;
 
-namespace WebApplication1.Controllers
+namespace EDG_B2B.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -30,24 +30,25 @@ namespace WebApplication1.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _dbContext.Users
-                .Include(u => u.Company)
-                .Where(u => u.Status == UserStatus.Pending);
+            var query = _dbContext.Kullanicilar
+                .Include(k => k.Bayi)
+                .Where(k => k.Durum == KullaniciDurumu.Beklemede);
 
             var totalCount = await query.CountAsync();
             var pendingUsers = await query
-                .OrderByDescending(u => u.CreatedAt)
+                .OrderByDescending(k => k.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new
+                .Select(k => new
                 {
-                    u.Id,
-                    u.Email,
-                    u.FullName,
-                    CompanyName = u.Company.Name,
-                    u.PhoneNumber,
-                    u.CreatedAt,
-                    Status = u.Status.ToString()
+                    k.Id,
+                    k.Email,
+                    k.Ad,
+                    k.Soyad,
+                    Unvan = k.Bayi != null ? k.Bayi.Unvan : null,
+                    k.Telefon,
+                    k.CreatedAt,
+                    Durum = k.Durum.ToString()
                 })
                 .ToListAsync();
 
@@ -55,29 +56,30 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("approve-user/{userId}")]
-        public async Task<IActionResult> ApproveUser(int userId, [FromBody] ApprovalRequest request)
+        public async Task<IActionResult> ApproveUser(Guid userId, [FromBody] ApprovalRequest request)
         {
-            var user = await _dbContext.Users.FindAsync(userId);
+            var user = await _dbContext.Kullanicilar.FindAsync(userId);
             if (user == null)
                 return NotFound(new { message = "Kullanıcı bulunamadı" });
 
             // 3. İŞ MANTIĞI: Durum kontrolü (Sadece bekleyenler onaylanabilir)
-            if (user.Status != UserStatus.Pending)
+            if (user.Durum != KullaniciDurumu.Beklemede)
                 return BadRequest(new { message = "Sadece bekleme durumundaki kullanıcılar onaylanabilir." });
 
             // 4. DENETİM: İşlemi yapan Admin ID bilgisi JWT Token'dan dinamik alınıyor
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(adminIdClaim) || !int.TryParse(adminIdClaim, out int adminId))
+            if (string.IsNullOrEmpty(adminIdClaim) || !Guid.TryParse(adminIdClaim, out Guid adminId))
             {
                 return Unauthorized(new { message = "Admin kimliği doğrulanamadı." });
             }
 
-            user.Status = UserStatus.Approved;
-            user.ApprovedAt = DateTime.UtcNow;
-            user.ApprovedByAdminId = adminId; 
-            user.ApprovalNotes = request.Notes;
+            user.Durum = KullaniciDurumu.Onaylandi;
+            user.Aktif = true;
+            user.OnaylanmaTarihi = DateTime.UtcNow;
+            user.OnaylayanAdminId = adminId;
+            user.OnayNotu = request.Notes;
 
-            _dbContext.Users.Update(user);
+            _dbContext.Kullanicilar.Update(user);
             await _dbContext.SaveChangesAsync();
 
             // NOT: Burada onaylanan kullanıcıya e-posta gönderme (E-mail trigger) servisi çağrılabilir.
@@ -86,19 +88,20 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("reject-user/{userId}")]
-        public async Task<IActionResult> RejectUser(int userId, [FromBody] ApprovalRequest request)
+        public async Task<IActionResult> RejectUser(Guid userId, [FromBody] ApprovalRequest request)
         {
-            var user = await _dbContext.Users.FindAsync(userId);
+            var user = await _dbContext.Kullanicilar.FindAsync(userId);
             if (user == null)
                 return NotFound(new { message = "Kullanıcı bulunamadı" });
 
-            if (user.Status != UserStatus.Pending)
+            if (user.Durum != KullaniciDurumu.Beklemede)
                 return BadRequest(new { message = "Sadece bekleme durumundaki kullanıcılar reddedilebilir." });
 
-            user.Status = UserStatus.Rejected;
-            user.ApprovalNotes = request.Notes;
+            user.Durum = KullaniciDurumu.Reddedildi;
+            user.Aktif = false;
+            user.OnayNotu = request.Notes;
 
-            _dbContext.Users.Update(user);
+            _dbContext.Kullanicilar.Update(user);
             await _dbContext.SaveChangesAsync();
 
             // Revoke all active sessions for this user
@@ -113,23 +116,25 @@ namespace WebApplication1.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _dbContext.Users.Include(u => u.Company);
+            var query = _dbContext.Kullanicilar.Include(k => k.Bayi);
             var totalCount = await query.CountAsync();
 
             var users = await query
-                .OrderByDescending(u => u.CreatedAt)
+                .OrderByDescending(k => k.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new
+                .Select(k => new
                 {
-                    u.Id,
-                    u.Email,
-                    u.FullName,
-                    CompanyName = u.Company.Name,
-                    Status = u.Status.ToString(),
-                    Role = u.Role.ToString(),
-                    u.CreatedAt,
-                    u.ApprovedAt
+                    k.Id,
+                    k.Email,
+                    k.Ad,
+                    k.Soyad,
+                    Unvan = k.Bayi != null ? k.Bayi.Unvan : null,
+                    Durum = k.Durum.ToString(),
+                    Rol = k.Rol.ToString(),
+                    k.Aktif,
+                    k.CreatedAt,
+                    k.OnaylanmaTarihi
                 })
                 .ToListAsync();
 

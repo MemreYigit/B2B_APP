@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Entity;
+using EDG_B2B.Entity;
 
-namespace WebApplication1.Data
+namespace EDG_B2B.Data
 {
     public class AppDbContext : DbContext
     {
@@ -9,102 +9,70 @@ namespace WebApplication1.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Company> Companies { get; set; }
-        public DbSet<UserSession> UserSessions { get; set; }
-        public DbSet<Cari> Cariler { get; set; }
+        public DbSet<Kullanici> Kullanicilar { get; set; }
+        public DbSet<KullaniciOturumu> KullaniciOturumlari { get; set; }
+        public DbSet<Bayi> Bayiler { get; set; }
+        public DbSet<SatisBayii> SatisBayiler { get; set; }
         public DbSet<Urun> Urunler { get; set; }
-        public DbSet<CariUrunFiyat> CariUrunFiyatlari { get; set; }
-        public DbSet<CariHareket> CariHareketler { get; set; }
+        public DbSet<BayiUrunFiyat> BayiUrunFiyatlari { get; set; }
+        public DbSet<Sepet> Sepetler { get; set; }
+        public DbSet<SepetUrun> SepetUrunleri { get; set; }
         public DbSet<Siparis> Siparisler { get; set; }
-        public DbSet<SiparisKalemi> SiparisKalemleri { get; set; }
+        public DbSet<SiparisUrun> SiparisUrunleri { get; set; }
         public DbSet<Fatura> Faturalar { get; set; }
-        public DbSet<UserDocument> UserDocuments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Company configuration
-            modelBuilder.Entity<Company>(entity =>
+            // Kullanici configuration
+            modelBuilder.Entity<Kullanici>(entity =>
             {
-                entity.HasKey(c => c.Id);
+                entity.HasKey(k => k.Id);
 
-                entity.Property(c => c.Name)
+                entity.Property(k => k.Ad)
                     .IsRequired()
-                    .HasMaxLength(200);
+                    .HasMaxLength(100);
 
-                entity.Property(c => c.TaxNumber)
+                entity.Property(k => k.Soyad)
                     .IsRequired()
-                    .HasMaxLength(50);
+                    .HasMaxLength(100);
 
-                entity.Property(c => c.Address)
-                    .HasMaxLength(500);
-
-                entity.Property(c => c.PhoneNumber)
-                    .HasMaxLength(20);
-
-                entity.Property(c => c.Email)
-                    .HasMaxLength(256);
-
-                // Vergi numarası eşsiz olmalıdır
-                entity.HasIndex(c => c.TaxNumber)
-                    .IsUnique();
-                    
-                // Soft delete global query filter
-                entity.HasQueryFilter(c => !c.IsDeleted);
-            });
-
-            // User configuration
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(u => u.Id);
-
-                entity.Property(u => u.Email)
+                entity.Property(k => k.Email)
                     .IsRequired()
                     .HasMaxLength(256);
 
-                entity.Property(u => u.FullName)
-                    .IsRequired()
-                    .HasMaxLength(150);
-
-                entity.Property(u => u.PasswordHash)
+                entity.Property(k => k.PasswordHash)
                     .IsRequired()
                     .HasMaxLength(500);
 
-                entity.Property(u => u.PhoneNumber)
+                entity.Property(k => k.Telefon)
                     .HasMaxLength(20);
 
-                entity.Property(u => u.ApprovalNotes)
+                entity.Property(k => k.OnayNotu)
                     .HasMaxLength(1000);
 
-                entity.Property(u => u.EmailVerificationToken)
+                entity.Property(k => k.EmailDogrulamaTokeni)
                     .HasMaxLength(200);
 
-                entity.HasIndex(u => u.EmailVerificationToken);
+                entity.HasIndex(k => k.EmailDogrulamaTokeni);
 
                 // Unique index on Email
-                entity.HasIndex(u => u.Email)
+                entity.HasIndex(k => k.Email)
                     .IsUnique();
 
-                // Foreign key to Company
-                entity.HasOne(u => u.Company)
-                    .WithMany(c => c.Users)
-                    .HasForeignKey(u => u.CompanyId)
+                // Self-referencing foreign key for OnaylayanAdmin
+                entity.HasOne(k => k.OnaylayanAdmin)
+                    .WithMany()
+                    .HasForeignKey(k => k.OnaylayanAdminId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Self-referencing foreign key for ApprovedByAdmin
-                entity.HasOne(u => u.ApprovedByAdmin)
-                    .WithMany()
-                    .HasForeignKey(u => u.ApprovedByAdminId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
                 // Soft delete global query filter
-                entity.HasQueryFilter(u => !u.IsDeleted);
+                entity.HasQueryFilter(k => !k.IsDeleted);
             });
 
-            // UserSession configuration
-            modelBuilder.Entity<UserSession>(entity =>
+            // KullaniciOturumu configuration
+            modelBuilder.Entity<KullaniciOturumu>(entity =>
             {
                 entity.HasKey(s => s.Id);
 
@@ -114,52 +82,71 @@ namespace WebApplication1.Data
 
                 entity.HasIndex(s => s.Jti).IsUnique();
 
-                entity.HasIndex(s => new { s.UserId, s.IsRevoked });
+                entity.HasIndex(s => new { s.KullaniciId, s.IsRevoked });
 
-                entity.HasOne(s => s.User)
+                entity.HasOne(s => s.Kullanici)
                     .WithMany()
-                    .HasForeignKey(s => s.UserId)
+                    .HasForeignKey(s => s.KullaniciId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Apply same soft delete filter as User entity
-                entity.HasQueryFilter(s => !s.User.IsDeleted);
+                // Apply same soft delete filter as Kullanici entity
+                entity.HasQueryFilter(s => !s.Kullanici.IsDeleted);
             });
 
-            // Cari configuration
-            modelBuilder.Entity<Cari>(entity =>
+            // Bayi configuration
+            modelBuilder.Entity<Bayi>(entity =>
             {
-                entity.HasKey(c => c.Id);
+                entity.HasKey(b => b.Id);
 
-                entity.Property(c => c.CariKodu)
-                    .IsRequired()
-                    .HasMaxLength(50);
-
-                entity.Property(c => c.Unvan)
+                entity.Property(b => b.Unvan)
                     .IsRequired()
                     .HasMaxLength(200);
 
-                entity.Property(c => c.VergiNumarasi)
+                entity.Property(b => b.VergiNo)
+                    .IsRequired()
                     .HasMaxLength(50);
 
-                entity.Property(c => c.ToplamRiskLimiti)
-                    .HasPrecision(18, 2);
+                entity.Property(b => b.Adres)
+                    .HasMaxLength(500);
 
-                entity.Property(c => c.GuncelBakiye)
-                    .HasPrecision(18, 2);
-
-                entity.HasIndex(c => c.CariKodu)
+                entity.HasIndex(b => b.VergiNo)
                     .IsUnique();
 
-                // Bir Company yalnızca bir Cari ile eşleşir (1-1)
-                entity.HasIndex(c => c.CompanyId)
+                // Bir Kullanici yalnızca bir Bayi ile eşleşir (1-1)
+                entity.HasIndex(b => b.KullaniciId)
                     .IsUnique();
 
-                entity.HasOne(c => c.Company)
-                    .WithOne(co => co.Cari)
-                    .HasForeignKey<Cari>(c => c.CompanyId)
+                entity.HasOne(b => b.Kullanici)
+                    .WithOne(k => k.Bayi)
+                    .HasForeignKey<Bayi>(b => b.KullaniciId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasQueryFilter(c => !c.IsDeleted);
+                // Bir bayinin tek satış temsilcisi olur; temsilci silinirse bağ kopar (SetNull)
+                entity.HasOne(b => b.SatisBayii)
+                    .WithMany(sb => sb.Bayiler)
+                    .HasForeignKey(b => b.SatisBayiiId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Apply same soft delete filter as Kullanici entity
+                entity.HasQueryFilter(b => !b.Kullanici.IsDeleted);
+            });
+
+            // SatisBayii configuration
+            modelBuilder.Entity<SatisBayii>(entity =>
+            {
+                entity.HasKey(sb => sb.Id);
+
+                // Bir Kullanici yalnızca bir SatisBayii ile eşleşir (1-1)
+                entity.HasIndex(sb => sb.KullaniciId)
+                    .IsUnique();
+
+                entity.HasOne(sb => sb.Kullanici)
+                    .WithOne(k => k.SatisBayii)
+                    .HasForeignKey<SatisBayii>(sb => sb.KullaniciId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Apply same soft delete filter as Kullanici entity
+                entity.HasQueryFilter(sb => !sb.Kullanici.IsDeleted);
             });
 
             // Urun configuration
@@ -167,82 +154,87 @@ namespace WebApplication1.Data
             {
                 entity.HasKey(u => u.Id);
 
-                entity.Property(u => u.UrunKodu)
-                    .IsRequired()
-                    .HasMaxLength(50);
-
-                entity.Property(u => u.UrunAdi)
+                entity.Property(u => u.Ad)
                     .IsRequired()
                     .HasMaxLength(300);
 
-                entity.Property(u => u.Birim)
-                    .HasMaxLength(20);
+                entity.Property(u => u.StokKodu)
+                    .IsRequired()
+                    .HasMaxLength(50);
 
-                entity.Property(u => u.ListeFiyati)
+                entity.Property(u => u.StandartFiyat)
                     .HasPrecision(18, 2);
 
-                entity.HasIndex(u => u.UrunKodu)
-                    .IsUnique();
+                entity.Property(u => u.KdvOrani)
+                    .HasPrecision(5, 2);
 
-                entity.HasQueryFilter(u => !u.IsDeleted);
+                entity.HasIndex(u => u.StokKodu)
+                    .IsUnique();
             });
 
-            // CariUrunFiyat configuration
-            modelBuilder.Entity<CariUrunFiyat>(entity =>
+            // BayiUrunFiyat configuration
+            modelBuilder.Entity<BayiUrunFiyat>(entity =>
             {
                 entity.HasKey(f => f.Id);
 
                 entity.Property(f => f.OzelFiyat)
                     .HasPrecision(18, 2);
 
-                // Belirli bir Cari + Urun için fiyat sorgusu bu index'i kullanır
-                entity.HasIndex(f => new { f.CariId, f.UrunId });
+                // Bir Bayi + Urun kombinasyonu için tek fiyat kaydı
+                entity.HasIndex(f => new { f.BayiId, f.UrunId })
+                    .IsUnique();
 
-                entity.HasOne(f => f.Cari)
-                    .WithMany(c => c.CariUrunFiyatlari)
-                    .HasForeignKey(f => f.CariId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(f => f.Bayi)
+                    .WithMany(b => b.BayiUrunFiyatlari)
+                    .HasForeignKey(f => f.BayiId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(f => f.Urun)
-                    .WithMany(u => u.CariUrunFiyatlari)
+                    .WithMany(u => u.BayiUrunFiyatlari)
                     .HasForeignKey(f => f.UrunId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Cari'nin soft-delete filtresiyle eşleşir
-                entity.HasQueryFilter(f => !f.Cari.IsDeleted);
+                // Match Bayi's soft delete filter (required relationship)
+                entity.HasQueryFilter(f => !f.Bayi.Kullanici.IsDeleted);
             });
 
-            // CariHareket configuration
-            modelBuilder.Entity<CariHareket>(entity =>
+            // Sepet configuration
+            modelBuilder.Entity<Sepet>(entity =>
             {
-                entity.HasKey(h => h.Id);
+                entity.HasKey(s => s.Id);
 
-                entity.Property(h => h.BirimFiyat)
-                    .HasPrecision(18, 2);
-
-                entity.Property(h => h.Miktar)
-                    .HasPrecision(18, 3);
-
-                entity.Property(h => h.IskontoOrani)
-                    .HasPrecision(5, 2);
-
-                entity.Property(h => h.Aciklama)
-                    .HasMaxLength(500);
-
-                entity.HasIndex(h => new { h.CariId, h.Tarih });
-
-                entity.HasOne(h => h.Cari)
-                    .WithMany(c => c.CariHareketler)
-                    .HasForeignKey(h => h.CariId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(h => h.Urun)
-                    .WithMany(u => u.CariHareketler)
-                    .HasForeignKey(h => h.UrunId)
+                entity.HasOne(s => s.Bayi)
+                    .WithMany(b => b.Sepetler)
+                    .HasForeignKey(s => s.BayiId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Cari'nin soft-delete filtresiyle eşleşir
-                entity.HasQueryFilter(h => !h.Cari.IsDeleted);
+                // Match Bayi's soft delete filter (required relationship)
+                entity.HasQueryFilter(s => !s.Bayi.Kullanici.IsDeleted);
+            });
+
+            // SepetUrun configuration
+            modelBuilder.Entity<SepetUrun>(entity =>
+            {
+                entity.HasKey(su => su.Id);
+
+                entity.Property(su => su.Miktar)
+                    .HasPrecision(18, 3);
+
+                entity.Property(su => su.BirimFiyat)
+                    .HasPrecision(18, 2);
+
+                entity.HasOne(su => su.Sepet)
+                    .WithMany(s => s.SepetUrunleri)
+                    .HasForeignKey(su => su.SepetId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(su => su.Urun)
+                    .WithMany(u => u.SepetUrunleri)
+                    .HasForeignKey(su => su.UrunId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Match Sepet's soft delete filter (required relationship)
+                entity.HasQueryFilter(su => !su.Sepet.Bayi.Kullanici.IsDeleted);
             });
 
             // Siparis configuration
@@ -250,52 +242,50 @@ namespace WebApplication1.Data
             {
                 entity.HasKey(s => s.Id);
 
-                entity.Property(s => s.SiparisNo)
-                    .IsRequired()
-                    .HasMaxLength(50);
-
-                entity.HasIndex(s => s.SiparisNo)
+                // Bir Sepet yalnızca bir Siparis'e dönüşür (1-1)
+                entity.HasIndex(s => s.SepetId)
                     .IsUnique();
 
-                entity.HasOne(s => s.Cari)
-                    .WithMany(c => c.Siparisler)
-                    .HasForeignKey(s => s.CariId)
+                entity.HasOne(s => s.Sepet)
+                    .WithOne(sp => sp.Siparis)
+                    .HasForeignKey<Siparis>(s => s.SepetId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(s => s.User)
+                entity.HasOne(s => s.OnaylayanSatisBayii)
                     .WithMany()
-                    .HasForeignKey(s => s.UserId)
+                    .HasForeignKey(s => s.OnaylayanSatisBayiiId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasQueryFilter(s => !s.IsDeleted);
+                // Match SatisBayii's soft delete filter (required relationship)
+                entity.HasQueryFilter(s => !s.OnaylayanSatisBayii.Kullanici.IsDeleted);
             });
 
-            // SiparisKalemi configuration
-            modelBuilder.Entity<SiparisKalemi>(entity =>
+            // SiparisUrun configuration
+            modelBuilder.Entity<SiparisUrun>(entity =>
             {
-                entity.HasKey(k => k.Id);
+                entity.HasKey(su => su.Id);
 
-                entity.Property(k => k.Miktar)
+                entity.Property(su => su.Miktar)
                     .HasPrecision(18, 3);
 
-                entity.Property(k => k.BirimFiyat)
+                entity.Property(su => su.BirimFiyat)
                     .HasPrecision(18, 2);
 
-                entity.Property(k => k.IskontoOrani)
-                    .HasPrecision(5, 2);
+                entity.Property(su => su.SatirToplam)
+                    .HasPrecision(18, 2);
 
-                entity.HasOne(k => k.Siparis)
-                    .WithMany(s => s.Kalemler)
-                    .HasForeignKey(k => k.SiparisId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(k => k.Urun)
-                    .WithMany(u => u.SiparisKalemleri)
-                    .HasForeignKey(k => k.UrunId)
+                entity.HasOne(su => su.Siparis)
+                    .WithMany(s => s.SiparisUrunleri)
+                    .HasForeignKey(su => su.SiparisId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Siparis'in soft-delete filtresiyle eşleşir
-                entity.HasQueryFilter(k => !k.Siparis.IsDeleted);
+                entity.HasOne(su => su.Urun)
+                    .WithMany(u => u.SiparisUrunleri)
+                    .HasForeignKey(su => su.UrunId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Match Siparis's soft delete filter (required relationship)
+                entity.HasQueryFilter(su => !su.Siparis.OnaylayanSatisBayii.Kullanici.IsDeleted);
             });
 
             // Fatura configuration
@@ -307,17 +297,11 @@ namespace WebApplication1.Data
                     .IsRequired()
                     .HasMaxLength(50);
 
-                entity.Property(f => f.ToplamTutar)
+                entity.Property(f => f.Tutar)
                     .HasPrecision(18, 2);
 
-                entity.Property(f => f.KdvTutari)
+                entity.Property(f => f.KdvTutar)
                     .HasPrecision(18, 2);
-
-                entity.Property(f => f.DokumanYolu)
-                    .HasMaxLength(500);
-
-                entity.Property(f => f.GibReferansNo)
-                    .HasMaxLength(100);
 
                 entity.HasIndex(f => f.FaturaNo)
                     .IsUnique();
@@ -331,31 +315,8 @@ namespace WebApplication1.Data
                     .HasForeignKey<Fatura>(f => f.SiparisId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Siparis'in soft-delete filtresiyle eşleşir
-                entity.HasQueryFilter(f => !f.Siparis.IsDeleted);
-            });
-
-            // UserDocument configuration
-            modelBuilder.Entity<UserDocument>(entity =>
-            {
-                entity.HasKey(d => d.Id);
-
-                entity.Property(d => d.FilePath)
-                    .IsRequired()
-                    .HasMaxLength(500);
-
-                entity.Property(d => d.OriginalFileName)
-                    .HasMaxLength(255);
-
-                entity.HasIndex(d => new { d.UserId, d.Tip });
-
-                entity.HasOne(d => d.User)
-                    .WithMany(u => u.Documents)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // User'ın soft-delete filtresiyle eşleşir
-                entity.HasQueryFilter(d => !d.User.IsDeleted);
+                // Match Siparis's soft delete filter (required relationship)
+                entity.HasQueryFilter(f => !f.Siparis.OnaylayanSatisBayii.Kullanici.IsDeleted);
             });
         }
     }

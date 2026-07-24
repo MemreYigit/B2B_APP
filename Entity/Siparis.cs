@@ -1,63 +1,45 @@
-namespace WebApplication1.Entity
+using EDG_B2B.Entity.Enums;
+
+namespace EDG_B2B.Entity
 {
+    // Sepet onaylandığında oluşan sipariş.
     public class Siparis
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
-        public required string SiparisNo { get; set; }
+        public required Guid SepetId { get; set; }
 
-        public required int CariId { get; set; }
+        public SiparisDurumu Durum { get; set; } = SiparisDurumu.Onaylandi;
 
-        // Siparişi veren kullanıcı
-        public required int UserId { get; set; }
-
-        public DateTime SiparisTarihi { get; set; } = DateTime.UtcNow;
-
-        public bool TeslimEdildiMi { get; set; } = false;
-
-        public DateTime? TeslimTarihi { get; set; }
-
-        public SiparisDurumu Durum { get; set; } = SiparisDurumu.Alindi;
+        // Sepeti onaylayıp siparişe dönüştüren satış temsilcisi
+        public required Guid OnaylayanSatisBayiiId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime? UpdatedAt { get; set; }
-
-        public bool IsDeleted { get; set; } = false;
-
         // Navigation properties
-        public Cari Cari { get; set; } = null!;
+        public Sepet Sepet { get; set; } = null!;
 
-        public User User { get; set; } = null!;
+        public SatisBayii OnaylayanSatisBayii { get; set; } = null!;
 
-        public ICollection<SiparisKalemi> Kalemler { get; set; } = new List<SiparisKalemi>();
+        public ICollection<SiparisUrun> SiparisUrunleri { get; set; } = new List<SiparisUrun>();
 
         public Fatura? Fatura { get; set; }
     }
 
-    public enum SiparisDurumu
+    // Sipariş satırı: hangi üründen ne kadar, hangi fiyatla sipariş edildiği.
+    public class SiparisUrun
     {
-        Alindi = 0,
-        Hazirlaniyor = 1,
-        KargoyaVerildi = 2,
-        TeslimEdildi = 3,
-        IptalEdildi = 4
-    }
+        public Guid Id { get; set; }
 
-    // Sipariş satırı: hangi üründen ne kadar, hangi fiyat ve iskontoyla sipariş edildiği.
-    public class SiparisKalemi
-    {
-        public int Id { get; set; }
+        public required Guid SiparisId { get; set; }
 
-        public required int SiparisId { get; set; }
-
-        public required int UrunId { get; set; }
+        public required Guid UrunId { get; set; }
 
         public decimal Miktar { get; set; }
 
         public decimal BirimFiyat { get; set; }
 
-        public decimal IskontoOrani { get; set; } = 0;
+        public decimal SatirToplam { get; set; }
 
         // Navigation properties
         public Siparis Siparis { get; set; } = null!;

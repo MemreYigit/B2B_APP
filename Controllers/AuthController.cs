@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using WebApplication1.Models;
-using WebApplication1.Services;
+using EDG_B2B.Models;
+using EDG_B2B.Services;
 
-namespace WebApplication1.Controllers
+namespace EDG_B2B.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

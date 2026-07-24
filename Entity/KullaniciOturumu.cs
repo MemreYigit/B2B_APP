@@ -1,12 +1,12 @@
-namespace WebApplication1.Entity
+namespace EDG_B2B.Entity
 {
-    public class UserSession
+    public class KullaniciOturumu
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         public required string Jti { get; set; }
 
-        public int UserId { get; set; }
+        public Guid KullaniciId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -17,6 +17,6 @@ namespace WebApplication1.Entity
         public DateTime? RevokedAt { get; set; }
 
         // Navigation property
-        public User User { get; set; } = null!;
+        public Kullanici Kullanici { get; set; } = null!;
     }
 }

@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Data;
-using WebApplication1.Entity;
-using WebApplication1.Models;
+using EDG_B2B.Data;
+using EDG_B2B.Entity;
+using EDG_B2B.Entity.Enums;
+using EDG_B2B.Models;
 
-namespace WebApplication1.Services
+namespace EDG_B2B.Services
 {
     public interface IAuthService
     {
-        Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request);
-        Task<(bool Success, string Message, UserDto? User, string? Token)> LoginAsync(LoginRequest request);
-        Task<User?> GetUserByIdAsync(int id);
+        Task<(bool Success, string Message, Guid UserId)> RegisterAsync(RegisterRequest request);
+        Task<(bool Success, string Message, KullaniciDto? User, string? Token)> LoginAsync(LoginRequest request);
+        Task<Kullanici?> GetUserByIdAsync(Guid id);
         bool VerifyPassword(string password, string hash);
     }
 
@@ -24,91 +25,97 @@ namespace WebApplication1.Services
             _jwtService = jwtService;
         }
 
-        public async Task<(bool Success, string Message, int UserId)> RegisterAsync(RegisterRequest request)
+        public async Task<(bool Success, string Message, Guid UserId)> RegisterAsync(RegisterRequest request)
         {
             var normalizedEmail = request.Email.Trim().ToLower();
 
-            var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+            var existingUser = await _dbContext.Kullanicilar.FirstOrDefaultAsync(k => k.Email == normalizedEmail);
             if (existingUser != null)
-                return (false, "Bu email zaten kayıtlı", 0);
+                return (false, "Bu email zaten kayıtlı", Guid.Empty);
 
             if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-                return (false, "Şifre en az 8 karakter olmalıdır.", 0);
+                return (false, "Şifre en az 8 karakter olmalıdır.", Guid.Empty);
 
-            // Company'yi ara, yoksa oluştur
-            var company = await _dbContext.Companies
-                .FirstOrDefaultAsync(c => c.TaxNumber == request.TaxNumber && !c.IsDeleted);
+            var existingBayi = await _dbContext.Bayiler.FirstOrDefaultAsync(b => b.VergiNo == request.VergiNo);
+            if (existingBayi != null)
+                return (false, "Bu vergi numarası ile zaten bir bayi kaydı mevcut", Guid.Empty);
 
-            if (company == null)
+            var kullaniciId = Guid.NewGuid();
+
+            var kullanici = new Kullanici
             {
-                company = new Company
-                {   
-                    Name = request.CompanyName,
-                    TaxNumber = request.TaxNumber,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _dbContext.Companies.Add(company);
-                await _dbContext.SaveChangesAsync();
-            }
-
-            var user = new User
-            {
+                Id = kullaniciId,
                 Email = normalizedEmail,
-                FullName = request.FullName,
-                CompanyId = company.Id,
-                PhoneNumber = request.PhoneNumber,
+                Ad = request.Ad,
+                Soyad = request.Soyad,
+                Telefon = request.Telefon,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Status = UserStatus.Pending,
-                Role = UserRole.User
+                Durum = KullaniciDurumu.Beklemede,
+                Aktif = false,
+                Rol = KullaniciRolu.Bayi
             };
 
-            _dbContext.Users.Add(user);
+            var bayi = new Bayi
+            {
+                Id = Guid.NewGuid(),
+                KullaniciId = kullaniciId,
+                Unvan = request.Unvan,
+                VergiNo = request.VergiNo,
+                Adres = request.Adres
+            };
+
+            _dbContext.Kullanicilar.Add(kullanici);
+            _dbContext.Bayiler.Add(bayi);
             await _dbContext.SaveChangesAsync();
 
-            return (true, "Başvurunuz başarıyla alındı, admin onayı bekliyor", user.Id);
+            return (true, "Başvurunuz başarıyla alındı, admin onayı bekliyor", kullanici.Id);
         }
 
-        public async Task<(bool Success, string Message, UserDto? User, string? Token)> LoginAsync(LoginRequest request)
+        public async Task<(bool Success, string Message, KullaniciDto? User, string? Token)> LoginAsync(LoginRequest request)
         {
             var normalizedEmail = request.Email.Trim().ToLower();
 
-            var user = await _dbContext.Users
-                .Include(u => u.Company)
-                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+            var kullanici = await _dbContext.Kullanicilar
+                .Include(k => k.Bayi)
+                .FirstOrDefaultAsync(k => k.Email == normalizedEmail);
 
-            if (user == null)
+            if (kullanici == null)
             {
                 BCrypt.Net.BCrypt.Verify("dummy_password", "$2a$11$K3u7DkGj7mPskp.BvN1WCO3G6v3vR6mB5oB1tYy5aK4y5aK4y5aK4");
                 return (false, "Email veya şifre yanlış", null, null);
             }
 
-            if (!VerifyPassword(request.Password, user.PasswordHash))
+            if (!VerifyPassword(request.Password, kullanici.PasswordHash))
                 return (false, "Email veya şifre yanlış", null, null);
 
-            if (user.Status == UserStatus.Pending)
+            if (kullanici.Durum == KullaniciDurumu.Beklemede)
                 return (false, "Hesabınız henüz admin tarafından onaylanmadı", null, null);
 
-            if (user.Status == UserStatus.Rejected)
+            if (kullanici.Durum == KullaniciDurumu.Reddedildi)
                 return (false, "Başvurunuz reddedilmiştir. Lütfen destek ile iletişime geçin.", null, null);
 
-            var userDto = new UserDto
+            if (!kullanici.Aktif)
+                return (false, "Hesabınız pasif durumda. Lütfen destek ile iletişime geçin.", null, null);
+
+            var kullaniciDto = new KullaniciDto
             {
-                Id = user.Id,
-                Email = user.Email,
-                FullName = user.FullName,
-                CompanyName = user.Company?.Name ?? "Atanmadı",
-                Status = user.Status.ToString(),
-                Role = user.Role.ToString()
+                Id = kullanici.Id,
+                Email = kullanici.Email,
+                Ad = kullanici.Ad,
+                Soyad = kullanici.Soyad,
+                Durum = kullanici.Durum.ToString(),
+                Rol = kullanici.Rol.ToString(),
+                Unvan = kullanici.Bayi?.Unvan
             };
 
-            var token = await _jwtService.GenerateTokenAsync(user);
+            var token = await _jwtService.GenerateTokenAsync(kullanici);
 
-            return (true, "Başarıyla giriş yaptınız", userDto, token);
+            return (true, "Başarıyla giriş yaptınız", kullaniciDto, token);
         }
 
-        public async Task<User?> GetUserByIdAsync(int id)
+        public async Task<Kullanici?> GetUserByIdAsync(Guid id)
         {
-            return await _dbContext.Users.FindAsync(id);
+            return await _dbContext.Kullanicilar.FindAsync(id);
         }
 
         public bool VerifyPassword(string password, string hash)

@@ -3,17 +3,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using WebApplication1.Data;
-using WebApplication1.Entity;
+using EDG_B2B.Data;
+using EDG_B2B.Entity;
 
-namespace WebApplication1.Services
+namespace EDG_B2B.Services
 {
     public interface IJwtService
     {
-        Task<string> GenerateTokenAsync(User user);
-        ClaimsPrincipal? ValidateToken(string token);
+        Task<string> GenerateTokenAsync(Kullanici kullanici);
+        Task<ClaimsPrincipal?> ValidateTokenAsync(string token);
         Task RevokeAsync(string jti);
-        Task RevokeAllForUserAsync(int userId);
+        Task RevokeAllForUserAsync(Guid kullaniciId);
     }
 
     public class JwtService : IJwtService
@@ -41,8 +41,11 @@ namespace WebApplication1.Services
                 throw new InvalidOperationException("JWT SecretKey must be at least 32 characters long");
         }
 
-        public async Task<string> GenerateTokenAsync(User user)
+        public async Task<string> GenerateTokenAsync(Kullanici kullanici)
         {
+            // Tek aktif oturum politikası: yeni login, kullanıcının önceki aktif oturumlarını iptal eder.
+            await RevokeAllForUserAsync(kullanici.Id);
+
             var jti = Guid.NewGuid().ToString();
             var expiresAt = DateTime.UtcNow.AddMinutes(_expirationMinutes);
 
@@ -52,11 +55,10 @@ namespace WebApplication1.Services
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Jti, jti),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim("CompanyId", user.CompanyId.ToString()),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+                new Claim(ClaimTypes.NameIdentifier, kullanici.Id.ToString()),
+                new Claim(ClaimTypes.Email, kullanici.Email),
+                new Claim(ClaimTypes.Name, $"{kullanici.Ad} {kullanici.Soyad}"),
+                new Claim(ClaimTypes.Role, kullanici.Rol.ToString())
             };
 
             var token = new JwtSecurityToken(
@@ -67,10 +69,10 @@ namespace WebApplication1.Services
                 signingCredentials: creds
             );
 
-            _dbContext.UserSessions.Add(new UserSession
+            _dbContext.KullaniciOturumlari.Add(new KullaniciOturumu
             {
                 Jti = jti,
-                UserId = user.Id,
+                KullaniciId = kullanici.Id,
                 ExpiresAt = expiresAt
             });
             await _dbContext.SaveChangesAsync();
@@ -78,7 +80,7 @@ namespace WebApplication1.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public ClaimsPrincipal? ValidateToken(string token)
+        public async Task<ClaimsPrincipal?> ValidateTokenAsync(string token)
         {
             try
             {
@@ -97,6 +99,23 @@ namespace WebApplication1.Services
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
 
+                var jti = principal.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                if (string.IsNullOrEmpty(jti))
+                {
+                    _logger.LogWarning("Token has no jti claim");
+                    return null;
+                }
+
+                var session = await _dbContext.KullaniciOturumlari
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Jti == jti);
+
+                if (session == null || session.IsRevoked)
+                {
+                    _logger.LogInformation("Token rejected: session revoked or not found for jti {Jti}", jti);
+                    return null;
+                }
+
                 return principal;
             }
             catch (SecurityTokenExpiredException)
@@ -113,7 +132,7 @@ namespace WebApplication1.Services
 
         public async Task RevokeAsync(string jti)
         {
-            var session = await _dbContext.UserSessions.FirstOrDefaultAsync(s => s.Jti == jti);
+            var session = await _dbContext.KullaniciOturumlari.FirstOrDefaultAsync(s => s.Jti == jti);
             if (session != null && !session.IsRevoked)
             {
                 session.IsRevoked = true;
@@ -122,10 +141,10 @@ namespace WebApplication1.Services
             }
         }
 
-        public async Task RevokeAllForUserAsync(int userId)
+        public async Task RevokeAllForUserAsync(Guid kullaniciId)
         {
-            await _dbContext.UserSessions
-                .Where(s => s.UserId == userId && !s.IsRevoked)
+            await _dbContext.KullaniciOturumlari
+                .Where(s => s.KullaniciId == kullaniciId && !s.IsRevoked)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(x => x.IsRevoked, true)
                     .SetProperty(x => x.RevokedAt, DateTime.UtcNow));

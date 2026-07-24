@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Data;
+using EDG_B2B.Data;
 
-namespace WebApplication1.Controllers
+namespace EDG_B2B.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
